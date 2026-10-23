@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Factory Management</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style_v2.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
+</head>
+<body>
+
+  <!-- Modals -->
+
+  <!-- Add Graph Modal -->
+  <div id="add-graph-modal" class="modal hidden">
+    <div class="modal-content">
+      <span class="close-btn" id="close-graph-modal">&times;</span>
+      <h3>Add New Graph</h3>
+      <form id="add-graph-form">
+        <div class="input-group">
+          <label>Telemetry Feature</label>
+          <select id="graph-feature" required></select>
+        </div>
+        <div class="input-group">
+          <label>Line Color</label>
+          <input type="color" id="graph-color" value="#00e676" style="width: 100%; height: 40px;" />
+        </div>
+        <div class="input-group">
+          <label>Data Points Limit</label>
+          <select id="graph-limit">
+            <option value="10">Last 10</option>
+            <option value="50" selected>Last 50</option>
+            <option value="100">Last 100</option>
+            <option value="500">Last 500</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-success" style="width: 100%; margin-top: 10px;">Create Graph</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Command Button Modal -->
+  <div id="add-cmd-btn-modal" class="modal hidden">
+    <div class="modal-content">
+      <span class="close-btn" id="close-cmd-btn-modal">&times;</span>
+      <h3>Add Command Button</h3>
+      <form id="add-cmd-btn-form">
+        <div class="input-group">
+          <label>Button Label</label>
+          <input type="text" id="cmd-btn-label" placeholder="e.g. Start Motor" required />
+        </div>
+        <div class="input-group">
+          <label>Button Color</label>
+          <select id="cmd-btn-color">
+            <option value="btn-success">Green (Success)</option>
+            <option value="btn-warning">Yellow (Warning)</option>
+            <option value="btn-danger">Red (Danger)</option>
+            <option value="btn-primary" selected>Blue (Primary)</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Command Payload (JSON)</label>
+          <textarea id="cmd-btn-payload" rows="3" placeholder='{"action": "START"}' required style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ddd;"></textarea>
+        </div>
+        <button type="submit" class="btn btn-success" style="width: 100%; margin-top: 10px;">Create Button</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Change Password Modal -->
+  <div id="change-password-modal" class="modal hidden">
+    <div class="modal-content">
+      <span class="close-btn" id="close-password-modal">&times;</span>
+      <h3>Change Password</h3>
+      <p id="password-error" class="error hidden"></p>
+      <p id="password-success" class="success hidden"></p>
+      <form id="change-password-form">
+        <div class="input-group">
+          <label>Current Password</label>
+          <input type="password" id="current-password" required />
+        </div>
+        <div class="input-group">
+          <label>New Password</label>
+          <input type="password" id="new-password-change" required />
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Update Password</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Command PLC Modal -->
+  <div id="command-plc-modal" class="modal hidden">
+    <div class="modal-content">
+      <span class="close-btn" id="close-command-modal">&times;</span>
+      <h3>Send Command to PLC</h3>
+      <p>Target Device ID: <strong id="command-device-id"></strong></p>
+      <p id="command-error" class="error hidden"></p>
+      <p id="command-success" class="success hidden"></p>
+      <form id="command-plc-form">
+        <div class="input-group">
+          <label>Command Payload (JSON or Text)</label>
+          <textarea id="command-payload" rows="4" placeholder='e.g., {"action": "STOP", "motor": 1}' required style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ddd;"></textarea>
+        </div>
+        <button type="submit" class="btn btn-warning" style="width: 100%; margin-top: 10px;">Send Command</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Replace Manager Modal -->
+  <div id="replace-manager-modal" class="modal hidden">
+    <div class="modal-content">
+      <span class="close-btn" id="close-replace-modal">&times;</span>
+      <h3>Replace Manager</h3>
+      <p class="text-muted">Deactivates the current manager and assigns a new one to the same site.</p>
+      <form id="replace-manager-form">
+        <input type="hidden" id="replace-target-id" />
+        <div class="input-group">
+          <label>New Username</label>
+          <input type="text" id="replace-username" required />
+        </div>
+        <div class="input-group">
+          <label>New Password</label>
+          <input type="password" id="replace-password" required />
+        </div>
+        <div class="input-group">
+          <label>New Email (Optional)</label>
+          <input type="email" id="replace-email" />
+        </div>
+        <button type="submit" class="btn btn-warning" style="width: 100%; margin-top: 10px;">Replace Manager</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Create Manager Map Modal -->
+  <div id="create-manager-modal" class="modal hidden">
+    <div class="modal-content">
+      <span class="close-btn" id="close-create-manager-modal">&times;</span>
+      <h3>Deploy New Manager</h3>
+      <p class="text-muted">Location: <span id="new-manager-coords"></span></p>
+      <form id="create-manager-form">
+        <input type="hidden" id="new-manager-lat" />
+        <input type="hidden" id="new-manager-lng" />
+        <div class="input-group">
+          <label>Site ID (Number)</label>
+          <input type="number" id="new-manager-site" required />
+        </div>
+        <div class="input-group">
+          <label>Username</label>
+          <input type="text" id="new-manager-username" required />
+        </div>
+        <div class="input-group">
+          <label>Password</label>
+          <input type="password" id="new-manager-password" required />
+        </div>
+        <div class="input-group">
+          <label>Email (Optional)</label>
+          <input type="email" id="new-manager-email" />
+        </div>
+        <button type="submit" class="btn btn-success" style="width: 100%; margin-top: 10px;">Deploy Manager to Location</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- LANDING VIEW -->
+  <div id="landing-view" class="view active">
+    <div class="landing-hero glass-panel">
+      <h1>Welcome to SmartFactory</h1>
+      <p class="subtitle">The complete IoT telemetry and command portal for your plant floor.</p>
+      
+      <div class="features-list">
+        <div class="feature">
+          <h3>Real-time Telemetry</h3>
+          <p>Monitor your PLCs and devices instantly.</p>
+        </div>
+        <div class="feature">
+          <h3>Remote Command</h3>
+          <p>Send control signals securely via our MQTT broker.</p>
+        </div>
+        <div class="feature">
+          <h3>Audit & Security</h3>
+          <p>Multi-tenant architecture built for on-premise industrial edge deployment.</p>
+        </div>
+      </div>
+
+      <div class="landing-actions">
+        <button id="show-subscribe-btn" class="btn btn-success btn-large">Get Started Now</button>
+        <button id="show-login-btn" class="btn btn-secondary">Already a member? Login</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUBSCRIBE MODAL -->
+  <div id="subscribe-modal" class="modal hidden">
+    <div class="modal-content">
+      <span class="close-btn" id="close-subscribe-modal">&times;</span>
+      <h3>Subscribe to SmartFactory</h3>
+      <p>Enter your details to create your company's workspace.</p>
+      <form id="subscribe-form">
+        <div class="input-group">
+          <label>Company Name</label>
+          <input type="text" id="sub-company-name" required placeholder="e.g. Acme Corp" />
+        </div>
+        <div class="input-group">
+          <label>Admin Email</label>
+          <input type="email" id="sub-email" required placeholder="admin@example.com" />
+          <small class="text-muted">We will send your login credentials here.</small>
+        </div>
+        <div id="subscribe-msg" class="msg hidden"></div>
+        <button type="submit" class="btn btn-success" style="width: 100%; margin-top: 15px;" id="subscribe-submit-btn">Subscribe & Receive Credentials</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- LOGIN VIEW -->
+  <div id="login-view" class="view hidden glass-panel">
+    <div class="login-header">
+      <div class="logo"></div>
+      <h1>Smart Factory</h1>
+      <p>Management Portal Access</p>
+    </div>
+    <form id="login-form">
+      <div class="input-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required autocomplete="off" />
+      </div>
+      <div class="input-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required />
+      </div>
+      <div id="login-error" class="error-msg hidden">Invalid credentials</div>
+      <button type="submit" class="btn btn-primary" style="width: 100%;">Authenticate</button>
+    </form>
+  </div>
+
+  <!-- DASHBOARD VIEW -->
+  <div id="dashboard-view" class="view hidden">
+    <nav class="glass-panel navbar">
+      <div class="nav-brand">
+        <div class="logo-small"></div>
+        <h2>Smart Factory System</h2>
+      </div>
+      <div class="nav-user">
+        <span id="user-info">Logged in as: <strong id="logged-username"></strong> (<span id="logged-role"></span>)</span>
+        <button id="change-password-btn" class="btn btn-secondary">Change Password</button>
+        <button id="logout-btn" class="btn btn-danger">Log Out</button>
+      </div>
+    </nav>
+
+    <main class="dashboard-content">
+
+      <!-- Plant Floor Management Section -->
+      <section id="plant-floor-section" class="glass-panel section-card hidden">
+        <div class="section-header">
+          <h3>Plant Floor Management</h3>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <button id="refresh-devices-btn" class="btn btn-neutral">↻ Refresh</button>
+            <button id="show-add-plc-btn" class="btn btn-primary">+ Add PLC</button>
+          </div>
+        </div>
+
+        <div id="add-plc-panel" class="hidden bordered-panel" style="margin-bottom: 1.5rem;">
+          <h4>Register New PLC</h4>
+          <form id="add-plc-form" class="inline-form">
+            <input type="text" id="new-plc-name" placeholder="Device Name (e.g. Conveyor Belt)" required />
+            <input type="number" id="new-plc-zone" placeholder="Zone ID (e.g. 1)" required style="width: 150px;" />
+            <button type="submit" class="btn btn-success">Register</button>
+            <button type="button" id="cancel-add-plc-btn" class="btn btn-neutral">Cancel</button>
+          </form>
+          <div id="add-plc-msg" class="msg hidden"></div>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Device Name</th>
+                <th>Zone</th>
+                <th>MQTT Topic Base</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="devices-tbody">
+              <!-- Devices dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+        
+      </section>
+
+      <!-- 2D Operations Map (Super Admin Only) -->
+      <section id="map-section" class="glass-panel section-card hidden">
+        <div class="section-header">
+          <h3>Global Operations Map</h3>
+        </div>
+        <p class="text-muted" style="margin-bottom: 10px;">Click a location on the map to deploy a new Manager site.</p>
+        <div id="map-container" style="width: 100%; height: 500px; border-radius: 8px; overflow: hidden; cursor: crosshair;"></div>
+      </section>
+      
+      <!-- Personnel Management Section -->
+      <section class="glass-panel section-card">
+        <div class="section-header">
+          <h3>Personnel Management</h3>
+          <div>
+            <button id="refresh-users-btn" class="btn btn-neutral" style="margin-right: 8px;">↻ Refresh</button>
+            <button id="show-add-user-btn" class="btn btn-primary">+ Onboard Personnel</button>
+          </div>
+        </div>
+
+        <div id="add-user-panel" class="hidden bordered-panel">
+          <h4>Add New User</h4>
+          <form id="add-user-form" class="inline-form">
+            <input type="text" id="new-username" placeholder="Username" required />
+            <input type="email" id="new-email" placeholder="Email Address (Optional)" />
+            <input type="password" id="new-password" placeholder="Password" required />
+            <input type="number" id="new-site" placeholder="Site ID" />
+            <button type="submit" class="btn btn-success">Create</button>
+            <button type="button" id="cancel-add-user-btn" class="btn btn-secondary">Cancel</button>
+          </form>
+          <div id="add-user-error" class="error-msg hidden"></div>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Site ID</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody">
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Audit Logs Section (Super Admin Only) -->
+      <section id="audit-logs-section" class="glass-panel section-card hidden">
+        <div class="section-header">
+          <h3>System Audit Logs</h3>
+          <button id="refresh-logs-btn" class="btn btn-neutral">↻ Refresh</button>
+        </div>
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Actor</th>
+                <th>Action</th>
+                <th>Target ID</th>
+              </tr>
+            </thead>
+            <tbody id="audit-logs-tbody">
+              <!-- Logs injected here -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- PLC DETAIL VIEW -->
+  <div id="plc-detail-view" class="view hidden" style="display: flex; flex-direction: column; width: 100vw; height: 100vh; background: #111; overflow: hidden;">
+    
+    <!-- HEADER (Always visible) -->
+    <div class="plc-header" style="flex: 0 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 1rem; background: #1a1a1a; border-bottom: 1px solid #333; z-index: 20;">
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <button id="back-to-dashboard-btn" class="btn btn-secondary">&larr; Back to Plant Floor</button>
+        <h2 id="plc-detail-title" style="margin: 0; font-size: 1.2rem; color: #fff;">PLC Dashboard</h2>
+      </div>
+      <div>
+        <button id="toggle-lock-btn" class="btn btn-neutral">⚙️ Edit Mode</button>
+      </div>
+    </div>
+
+    <!-- MAIN WORKSPACE -->
+    <div style="display: flex; flex: 1 1 auto; overflow: hidden;">
+      
+      <!-- Edit Toolbox (Sidebar, Hidden by default) -->
+      <nav id="plc-top-nav" class="glass-panel hidden" style="flex: 0 0 250px; background: #1a1a1a; border-right: 1px solid #333; padding: 1rem; display: none; flex-direction: column; gap: 1rem; overflow-y: auto; z-index: 10;">
+        <button id="toggle-access-btn" class="btn btn-neutral hidden" style="width: 100%; text-align: left;">🔒 Restrict Edits to Me</button>
+        <div id="widget-toolbox" style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
+          <label class="btn btn-neutral" style="cursor:pointer; width: 100%; text-align: left;">
+            Upload Background <input type="file" id="upload-bg-input" accept="image/*" style="display:none;" />
+          </label>
+          <button id="undo-btn" class="btn btn-secondary" style="width: 100%; text-align: left;">↩ Undo Last Action</button>
+          <button id="show-add-display-btn" class="btn btn-neutral" style="width: 100%; text-align: left;">+ Add Display</button>
+          <button id="show-add-cmd-btn" class="btn btn-success" style="width: 100%; text-align: left;">+ Add Command Button</button>
+          <button id="show-add-slider-btn" class="btn btn-warning" style="width: 100%; text-align: left;">+ Add Slider</button>
+          <button id="clear-all-btn" class="btn btn-danger" style="width: 100%; text-align: left; margin-top: 1rem;">🗑️ Clear All Widgets</button>
+        </div>
+      </nav>
+
+      <!-- CANVAS AREA -->
+      <main class="dashboard-content" style="flex: 1 1 auto; display: flex; flex-direction: column; position: relative; overflow: hidden; background: #000;">
+        <!-- The interactive canvas -->
+        <div id="plc-commands-container" class="hmi-canvas" style="flex: 1 1 auto; position: relative; background-size: cover; background-position: 0px 0px; background-repeat: no-repeat; border: none; border-radius: 0; margin: 0; overflow: hidden;">
+          <!-- Dynamic Command Buttons will appear here -->
+        </div>
+        
+        <!-- Bottom Tabs -->
+        <div id="views-tabs-container" class="tabs" style="flex: 0 0 auto; display: flex; gap: 0.5rem; justify-content: center; background: #1a1a1a; padding: 0.5rem 1rem; z-index: 10; border-top: 1px solid #333;">
+          <!-- Tabs will be rendered here -->
+        </div>
+        
+        <div id="plc-graphs-container" style="display: none;">
+          <!-- Dynamic Graphs will appear here -->
+        </div>
+      </main>
+
+    </div>
+  </div>
+
+  <div id="add-slider-modal" class="modal hidden">
+    <div class="modal-content">
+      <span class="close-btn" id="close-slider-modal">&times;</span>
+      <h3>Add Control Slider</h3>
+      <form id="add-slider-form">
+        <div class="input-group">
+          <label>Slider Label</label>
+          <input type="text" id="slider-label" placeholder="e.g. Pump Speed" required />
+        </div>
+        <div style="display: flex; gap: 1rem;">
+          <div class="input-group" style="flex: 1;">
+            <label>Min Value</label>
+            <input type="number" id="slider-min" value="0" required />
+          </div>
+          <div class="input-group" style="flex: 1;">
+            <label>Max Value</label>
+            <input type="number" id="slider-max" value="100" required />
+          </div>
+          <div class="input-group" style="flex: 1;">
+            <label>Step</label>
+            <input type="number" id="slider-step" value="1" required />
+          </div>
+        </div>
+        <div class="input-group">
+          <label>Payload Key</label>
+          <input type="text" id="slider-key" placeholder="e.g. pump_speed" required />
+          <small class="text-muted">Moving the slider will send {"key": value}</small>
+        </div>
+        <div class="input-group">
+          <label>Color Style</label>
+          <select id="slider-color">
+            <option value="accent-active">Green</option>
+            <option value="accent-alert">Red</option>
+            <option value="accent-neutral" selected>Blue</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-success" style="width: 100%;">Create Slider</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Widget Settings Modal -->
+  <div id="widget-settings-modal" class="modal hidden">
+    <div class="modal-content">
+      <span class="close-btn" id="close-widget-settings-modal">&times;</span>
+      <h3>Widget Settings</h3>
+      <form id="widget-settings-form">
+        <div class="input-group" style="display: flex; gap: 1rem;">
+          <div style="flex: 1;">
+            <label>Width (px)</label>
+            <input type="number" id="widget-setting-width" placeholder="e.g. 100" />
+          </div>
+          <div style="flex: 1;">
+            <label>Height (px)</label>
+            <input type="number" id="widget-setting-height" placeholder="e.g. 50" />
+          </div>
+        </div>
+        <div class="input-group">
+          <label>Label</label>
+          <input type="text" id="widget-setting-label" />
+        </div>
+        <div class="input-group" style="display: flex; gap: 1rem;">
+          <div style="flex: 1;">
+            <label>Text Color</label>
+            <input type="color" id="widget-setting-text-color" value="#ffffff" style="width: 100%; height: 40px; padding: 0;" />
+          </div>
+          <div style="flex: 1;">
+            <label>Background Color</label>
+            <input type="color" id="widget-setting-bg-color" value="#333333" style="width: 100%; height: 40px; padding: 0;" />
+          </div>
+        </div>
+        <div class="input-group">
+          <label>Variable Key (Payload / Telemetry)</label>
+          <input type="text" id="widget-setting-key" />
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Save Settings</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="world_map.js"></script>
+  <!-- GLOBAL GRAPH MODAL -->
+  <div id="global-graph-modal" class="modal hidden">
+    <div class="modal-content glass-panel" style="width: 80%; max-width: 900px; height: 80%; display: flex; flex-direction: column;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 id="global-graph-title" style="margin: 0; color: #fff;">Telemetry History</h2>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+          <span style="color: #aaa; font-size: 0.9rem;">(Molette pour Zoomer, Glisser pour naviguer)</span>
+          <button id="close-global-graph-btn" class="btn btn-secondary">&times; Close</button>
+        </div>
+      </div>
+      <div style="flex: 1 1 auto; position: relative;">
+        <canvas id="global-graph-canvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script src="app_v5.js"></script>
+</body>
+</html>
